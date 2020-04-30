@@ -4,6 +4,11 @@ import torch.nn as nn
 from bayes.distributions.normal import CustomNormal
 
 
+"""
+Module for Normalizing Flows
+"""
+
+
 class PlanarFlow(nn.Module):
     def __init__(self, n, u_normalize=False):
         super().__init__()

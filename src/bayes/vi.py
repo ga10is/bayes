@@ -6,9 +6,18 @@ import torch.nn as nn
 import torch.distributions as torchdist
 from bayes.distributions.flow import FlowDistribution
 
+"""
+Module for Variational Inference
+"""
+
 
 class VIModel(nn.Module):
     def __init__(self, model):
+        """
+        Parameters
+        ----------
+        model: bayes.nn.TensorModule
+        """
         super(VIModel, self).__init__()
         self.loc_dict, n_dim = self.extract_param(model)
 
@@ -18,9 +27,14 @@ class VIModel(nn.Module):
         self.dist = FlowDistribution(loc=self.mu, scale=self.log_sigma)
 
     def extract_param(self, model):
+        """
+        Parameters
+        ----------
+        model: bayes.nn.TensorModule
+        """
         start = 0
         loc_dict = OrderedDict()
-        for n, p in model.named_parameters():
+        for n, p in model.named_tparameters():
             num = reduce(lambda x, y: x * y, p.size())
             end = start + num
             loc_info = {
@@ -38,8 +52,13 @@ class VIModel(nn.Module):
 
 
 def normal_prior_dist(model):
+    """
+    Parameters
+    ----------
+    model: bayes.nn.TensorModule
+    """
     n_dim = 0
-    for n, p in model.named_parameters():
+    for n, p in model.named_tparameters():
         num = reduce(lambda x, y: x * y, p.size())
         n_dim += num
 
