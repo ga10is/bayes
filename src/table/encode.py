@@ -1,3 +1,5 @@
+from collections import OrderedDict
+import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
 STD_SCALER_KEY = 'std_scaler'
@@ -8,7 +10,7 @@ EMB_DIMS_KEY = 'emb_dims'
 
 def label_encode(df, categorical_features, mode, capsule):
     if mode == 'train':
-        capsule[LABEL_ENCODERS_KEY] = {}
+        capsule[LABEL_ENCODERS_KEY] = OrderedDict()
     label_encoders = capsule[LABEL_ENCODERS_KEY]
 
     for cat_col in categorical_features:
@@ -30,19 +32,22 @@ def get_emb_dims(df, categorical_features, mode, capsule):
         pass
 
 
-def smooth_target_encode(df, ste_feat, mode, capsule):
+def smooth_target_encode(df, target_col, ste_cols, mode, capsule):
     if mode == 'train':
-        capsule[TARGET_ENCODERS_KEY] = {}
-    tes = capsule[TARGET_ENCODERS_KEY]
+        capsule[TARGET_ENCODERS_KEY] = OrderedDict()
+    target_encoders = capsule[TARGET_ENCODERS_KEY]
 
-    for feat in ste_feat:
+    for col in ste_cols:
         if mode == 'train':
-            tes[feat] = TargetEncoder('y', feat)
-            tes[feat].fit(df)
+            encoder = TargetEncoder(target_col, col)
+            encoder.fit(df)
+            target_encoders[col] = encoder
+        else:
+            encoder = target_encoders[col]
 
-        mean_col = '%s_mean' % feat
-        n_col = '%s_n' % feat
-        df[mean_col], df[n_col] = tes[feat].transform(df[feat])
+        mean_col = '%s_mean' % col
+        n_col = '%s_n' % col
+        df[mean_col], df[n_col] = encoder.transform(df[col])
 
 
 class TargetEncoder:
@@ -51,20 +56,24 @@ class TargetEncoder:
         self.cat_col = cat_col
 
     def fit(self, df):
-        gb = df.groupby(self.cat_col)
-        # mean of target for each category, the number of data for each category
-        self.mean_dict_ = gb.mean()[self.target_col].to_dict()
-        self.size_dict_ = gb.size().to_dict()
-
         # mean of target for all data
         self.total_mean_ = df[self.target_col].mean()
+
+        gb = df.groupby(self.cat_col)
         # mean and std of the number of data for each category
-        self.n_mean_ = gb.size().mean()
-        self.n_std_ = gb.size().std()
+        n_mean = gb.size().mean()
+        n_std = gb.size().std()
+        if np.isnan(n_std):
+            raise ValueError('std of the number of categorical data is nan.')
+        normalized_size = (gb.size() - n_mean) / n_std
+
+        # mean of target for each category, the number of data for each category
+        self.mean_dict_ = gb.mean()[self.target_col].to_dict()
+        self.normalized_size_dict_ = normalized_size.to_dict()
 
         return self
 
     def transform(self, series):
         mean_x = series.map(self.mean_dict_)
-        n_x = series.map(self.size_dict_)
-        return mean_x, n_x
+        normalized_size_x = series.map(self.normalized_size_dict_)
+        return mean_x, normalized_size_x
