@@ -24,7 +24,8 @@ class VIModel(nn.Module):
         self.mu = nn.Parameter(torch.zeros(n_dim))
         self.log_sigma = nn.Parameter(torch.zeros(n_dim))
 
-        self.dist = FlowDistribution(loc=self.mu, scale=self.log_sigma)
+        self.dist = FlowDistribution(
+            loc=self.mu, scale=self.log_sigma, n_flows=32)
 
     def extract_param(self, model):
         """

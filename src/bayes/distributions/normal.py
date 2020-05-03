@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 
 class CustomNormal(torch.distributions.Normal):
-    def __init__(self, loc, scale, validate_args=None, eps=1e-6):
+    def __init__(self, loc, scale, validate_args=None, eps=1e-4):
         super(CustomNormal, self).__init__(loc, scale, validate_args)
         self.eps = eps
 

@@ -46,13 +46,13 @@ class PlanarFlow(nn.Module):
 
 
 class FlowDistribution(nn.Module):
-    def __init__(self, loc, scale):
+    def __init__(self, loc, scale, n_flows):
         super().__init__()
 
         self.normal = CustomNormal(loc=loc, scale=scale)
         n_dims = loc.size(0)
         self.flows = nn.ModuleList(
-            [PlanarFlow(n_dims, u_normalize=False) for _ in range(32)])
+            [PlanarFlow(n_dims, u_normalize=False) for _ in range(n_flows)])
 
     def sample(self):
         with torch.no_grad():
